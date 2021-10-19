@@ -1,30 +1,91 @@
-the gist thing here is seperation of concern
-you have model,view and controller and controllers are seperated for different entities
-you need to route wach of the endpoint to their own controller 
-step1: in app,js dont make too dirty
-simply use below code by importing authrouter
+1. inbuilt middleware
+ __dirname: gives path for the file or folder you are working own
+ process.getcwd(): gives root directory
 
-const authrouter=require('./Controllers/auth.controller')
-   app.use('/auth',authrouter)
+the files that are uploaded are not stored in database but are stored in server site directory: in our case after root dir-> uploads->images.>and imagename.extention
 
-whenever a client hit /auth it will redirect to authrouter and inside authrouter for /auth/login or bla bla end point make seperate middleware
-as made 
+ app.use('/files',express.static(path.join(process.cwd(),'uploads')))
 
-ther might be the endpoint not registered 
-to catch error 
-make a simple application level middleware art last whenever the endpoint wont match to other it will send 404 error
+ so when you type files/images/imagename.extention-> it will show you the image
+/files/inner_dir to that which you have mentioned and name of image is typed
+
+-> it can be placed at any place order doesn't matter(but preferred at first)
 
 
+error handling middlewares for redirecting to 404 api are needed
+middlewares are function with 3 or 4 arguments-4 areguments with err is called error handling middleware
 
 app.use(function(req,res,next){
-    res.json({
+    next({
         msg:"endpoint not found",
         status:404
     })
 })
 
+app.use(function(err, req, res, next){
+    res.json({
+        msg:"from error handling middleware",
+        msg2:"it is called when next is called with some argument from another middleware and has 4 parameters and dowsnt depend o order ",
+        msg3:err
 
-if you keep this middle upper to      app.use('/auth',authrouter)    
+    })
+})
 
-first the normal level middleware will execute and always throws an error so always keep normal app. level middleware at the bottom 
-for error handling
+these two middlewares should be kept simultaneously
+the first one will catch error which handlers are not provided and transfer the control to error handling middlewatre through next(arg)
+
+from any of the position if next has some argument -> redirect to the error handling middleware
+and its argument position is fixed err,req,res,next
+
+in a scenario where any component has error and want to show error they can directly do next(error) -> jumps to Error hand.. middleware
+in a scenario where routing handler is not found is catched by first middleware and with next(msg ) is transferred to the error handling one
+
+
+
+concept of authorization and implementing of series of middleware
+
+scenario: suppose you are admin and want to see which users are present in the website
+  now you need to be veried where you are admin or not(authentication is necessary) and also need to be confirmed that you are admin
+
+so to do so you need 2 middlewares
+1. authentication: to see whether you are authenticated:registered or not
+2.Isadmin: to see whether you are admin or not
+
+process: you should provide your details i.e token and isadmin value through url first
+ /user?token="random"$isadmin=true
+
+ now this url goes to app.js and check the first middleware and second middleware one after anther while hitting /user
+
+const authenticate=require('./middlewares/authentication')
+const isadmin=require('./middlewares/isadmin')
+app.use('/user',authenticate,isadmin,userrouter)
+
+explanation: ok /user is url now go to authenticate middleware present in middleware folder->authentication.js
+const authorize=function(req,res,next){
+    if(req.query.token==null){
+        return next("please provide token")
+    }
+    if(req.query.token=="random"){
+        return next()
+    }
+    next("invalid token")
+}
+module.exports=authorize
+
+here query is ?fsa: this fsa part from url : so query.token==random : 2nd if condition :next() is pass control to second middleware 
+which are placed in series i.e isadmin(got passed from authorize middleware): if not next with some msg leads to error handling middleware
+
+now in isadmin middleware inside middleware->isadmin.js
+
+module.exports=function(req,res,next){
+    if(req.query.admin==="true"){
+        return next()
+    }
+    next("you are not admin, not accessed")
+}
+in query admin==true(got passed and pass to next middleware) i.e. userrouter(routing level middleware)
+userrouter will fo to user.controller as imported in app.js
+and execute homepage as no other url like /login etc. are present
+
+
+in this way middle acts as series and comes in between request response cycle
