@@ -1,0 +1,15 @@
+step1. install express
+step2: make a server and main file app.js
+  -> import express,define port address and firstly make a server able to listen at that port
+
+  -> make handler and fulfill request response cycle
+   for response 
+       // res.send()
+    // res.download()
+    // res.sendFile()
+    // res.sendStatus()
+    // res.json()
+    // res end with data
+
+    // res.status()
+    // set status for response but doesnot end the response
