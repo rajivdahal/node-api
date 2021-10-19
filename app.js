@@ -2,29 +2,18 @@ const express=require("express")
 
 const PORT=4000;
 const app=express()
+const authrouter=require('./Controllers/auth.controller')
+const userrouter=require('./Controllers/user.controller')
 
-app.get("/",function(request,response){
-    console.log("at homepage")
-    response.send("at homepage")
-})
-app.get("/login",function(request,response){
-    console.log("at login page")
-    response.json({
-        msg:"at login page",
-        status:200,
-        data:["hello","hii"]
-    })
-})
-app.get("/help",function(request,response){
-    console.log("at help page")
-    response.send("at help page")
-})
-app.get("/write/:name/:extra",function(request,response){
-    console.log("at write page")
-    response.json({
-        msg:"from dynamic handler",
-        params:request.params,
-        query:request.query
+
+
+app.use('/auth',authrouter)
+app.use('/user',userrouter)
+
+app.use(function(req,res,next){
+    res.json({
+        msg:"endpoint not found",
+        status:404
     })
 })
 

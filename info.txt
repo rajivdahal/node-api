@@ -1,15 +1,30 @@
-step1. install express
-step2: make a server and main file app.js
-  -> import express,define port address and firstly make a server able to listen at that port
+the gist thing here is seperation of concern
+you have model,view and controller and controllers are seperated for different entities
+you need to route wach of the endpoint to their own controller 
+step1: in app,js dont make too dirty
+simply use below code by importing authrouter
 
-  -> make handler and fulfill request response cycle
-   for response 
-       // res.send()
-    // res.download()
-    // res.sendFile()
-    // res.sendStatus()
-    // res.json()
-    // res end with data
+const authrouter=require('./Controllers/auth.controller')
+   app.use('/auth',authrouter)
 
-    // res.status()
-    // set status for response but doesnot end the response
+whenever a client hit /auth it will redirect to authrouter and inside authrouter for /auth/login or bla bla end point make seperate middleware
+as made 
+
+ther might be the endpoint not registered 
+to catch error 
+make a simple application level middleware art last whenever the endpoint wont match to other it will send 404 error
+
+
+
+app.use(function(req,res,next){
+    res.json({
+        msg:"endpoint not found",
+        status:404
+    })
+})
+
+
+if you keep this middle upper to      app.use('/auth',authrouter)    
+
+first the normal level middleware will execute and always throws an error so always keep normal app. level middleware at the bottom 
+for error handling
