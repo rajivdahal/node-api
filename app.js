@@ -9,11 +9,16 @@ const authenticate=require('./middlewares/authentication')
 const isadmin=require('./middlewares/isadmin')
 
 
+require('./db_init')
+
 // console.log("path is",process.cwd())
 // console.log("current working directory is",__dirname)
+app.use(express.urlencoded({
+    extended:true
+}))
 app.use('/file', express.static(path.join(process.cwd(), 'uploads')))
-app.use('/auth',isadmin,authrouter)
-app.use('/user',authenticate,isadmin,userrouter)
+app.use('/auth',authrouter)
+app.use('/user',userrouter)
 
 
 //start of error handling middlewares

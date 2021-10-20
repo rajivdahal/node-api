@@ -1,0 +1,136 @@
+you have successfully modeled the data now
+install postman and make collection
+
+for create:
+url: localhost:4000/auth/register
+data:       name:kishor
+            password:adminq
+            phoneNumber:7777
+            permanentAddress:tinkune
+            dob:2020/10/10
+            gender:male
+            tempAddress:bkt,test,a
+            emailAddress:kishorg
+            username:telkjs
+
+inside handler of register 
+note: make instance of model by importing to create
+
+                    router.post('/register',function(req,res,next){
+                        console.log("at register page")
+                        console.log("request body is",req.body)
+                        const newUser = new UserModel({});
+                        newUser.name=req.body.name
+                        newUser.email=req.body.email
+                        newUser.username=req.body.username
+                        newUser.password=req.body.password
+                        newUser.phoneNumber=req.body.phoneNumber
+                        newUser.address={} // look at modeling the data
+                        newUser.address.permanentAddress=req.body.permanentAddress
+                        newUser.address.temporaryAddress=req.body.temporaryAddress.split(",") //split is done so that string are seperated as modeled in that way
+                        newUser.dob=req.body.dob
+                        console.log("request body is",req.body)
+                        newUser.save(function(err,user){
+                            if(err){
+                                return next(err)
+                            }
+                            res.status(200)
+                            res.send(user)
+                        })
+                        
+                    })
+
+for reading
+process1: without using exec()
+
+router.get('/',function(req,res,next){
+         userModel.find({},{username:1},function(err,user){ //you can do only .find({},function())  for fetching all the content but here only username is fetched
+             if(err){
+                 return next(err)
+             }
+             res.send(user)
+         })
+        
+})
+
+demerits of using this approach: you can't limit the no. ofdata to be fetched and skip documents
+
+process2: using exec
+
+router.get('/',function(req,res,next){
+    userModel.find({},{username:1})
+            .sort({
+                _id:-1
+            })
+           .limit(3)
+             .skip(1)
+    .exec(function(err,users){
+        if(err){
+            return next(err)
+        }
+        res.send(users)
+    })  
+})
+
+merits: you can limit and sort and do extra things but the syntax is little different
+
+
+logging in procedure
+
+router.post('/login', function (req, res, next) {
+    const data = req.body;
+    UserModel.findOne({
+        username: req.body.username
+    })
+        .then(function (user) {
+            // validate verfication
+            // if if user is active
+            // token generation
+            // res end
+            if (user.status === 'inactive') {
+                return next({
+                    msg: "Your account is disabled please contact system administrator for support",
+                    status: 400
+                })
+            }
+            res.json(user)
+        })
+        .catch(function (err) {
+            next(err);
+        })
+
+})
+
+
+
+removing the data(D)
+
+router.delete('/:id',function(req,res,next){
+    userModel.findById(req.params.id,function(err,user){
+        if(err){
+            return next(err)
+        }
+        if(!user){
+            return next({
+                msg:"user not found",
+                status:400
+            })
+        }
+        user.remove(function(err,removed){
+            if(err){
+                return next("error in removing")
+            }
+            res.json(removed)
+        })
+    })
+})
+
+
+
+updating the data(U)
+
+if condition is used 
+seperation of concern-> seperate file is maintained
+and argument is passed in a function from seperation of concern file
+you will understand the logic if you look at auth-> put request file
+ and the same code is balanced on register page so during registration also the same filecode is maintained

@@ -1,91 +1,36 @@
-1. inbuilt middleware
- __dirname: gives path for the file or folder you are working own
- process.getcwd(): gives root directory
+database connection and mongoose
+1. install mongodb and mongoose
+2. make the connection to database
+  approach: you have to open connection to the database when the application runs for the first time and leave it don't close the connection 
+  so, 
+  in app.js when it loads you need to start connection
+  at top in app.js:
+   require('./db_init')---> coz code will run in app.js at first and connection will establish on another file (seperation of concern)
 
-the files that are uploaded are not stored in database but are stored in server site directory: in our case after root dir-> uploads->images.>and imagename.extention
+  redirects to ./db_init
+                                const mongodb=require('mongodb)
+                                const mongoose=require('mongoose)
+                                const dbName="group37db"
+                                const conxnURL="mongodb://localhost:27017"+'/'+dbName
 
- app.use('/files',express.static(path.join(process.cwd(),'uploads')))
+                                mongoose.connect(conxnURL,{
+                                    useUnifiedTopology: true,
+                                    useNewUrlParser: true
+                                },
+                                function(err,done){
+                                    if(err){return console.log("error in db connectionn)} //no next() coz next will only work when url in browser hits 
+                                    // but here no url hit so no next but show in console to client that db connection has failed
+                                }
+                                console.log("db connection successful)
+                                )
+   the code will run at app.js when require() runs and db connection will be successful :
 
- so when you type files/images/imagename.extention-> it will show you the image
-/files/inner_dir to that which you have mentioned and name of image is typed
-
--> it can be placed at any place order doesn't matter(but preferred at first)
-
-
-error handling middlewares for redirecting to 404 api are needed
-middlewares are function with 3 or 4 arguments-4 areguments with err is called error handling middleware
-
-app.use(function(req,res,next){
-    next({
-        msg:"endpoint not found",
-        status:404
+   in models folder
+   what you want to model?
+   make a file,in user.models.js
+    const mongoose=require("mongoose)
+    const userSchema=mongoose.userSchema({
+        model the db
     })
-})
-
-app.use(function(err, req, res, next){
-    res.json({
-        msg:"from error handling middleware",
-        msg2:"it is called when next is called with some argument from another middleware and has 4 parameters and dowsnt depend o order ",
-        msg3:err
-
-    })
-})
-
-these two middlewares should be kept simultaneously
-the first one will catch error which handlers are not provided and transfer the control to error handling middlewatre through next(arg)
-
-from any of the position if next has some argument -> redirect to the error handling middleware
-and its argument position is fixed err,req,res,next
-
-in a scenario where any component has error and want to show error they can directly do next(error) -> jumps to Error hand.. middleware
-in a scenario where routing handler is not found is catched by first middleware and with next(msg ) is transferred to the error handling one
-
-
-
-concept of authorization and implementing of series of middleware
-
-scenario: suppose you are admin and want to see which users are present in the website
-  now you need to be veried where you are admin or not(authentication is necessary) and also need to be confirmed that you are admin
-
-so to do so you need 2 middlewares
-1. authentication: to see whether you are authenticated:registered or not
-2.Isadmin: to see whether you are admin or not
-
-process: you should provide your details i.e token and isadmin value through url first
- /user?token="random"$isadmin=true
-
- now this url goes to app.js and check the first middleware and second middleware one after anther while hitting /user
-
-const authenticate=require('./middlewares/authentication')
-const isadmin=require('./middlewares/isadmin')
-app.use('/user',authenticate,isadmin,userrouter)
-
-explanation: ok /user is url now go to authenticate middleware present in middleware folder->authentication.js
-const authorize=function(req,res,next){
-    if(req.query.token==null){
-        return next("please provide token")
-    }
-    if(req.query.token=="random"){
-        return next()
-    }
-    next("invalid token")
-}
-module.exports=authorize
-
-here query is ?fsa: this fsa part from url : so query.token==random : 2nd if condition :next() is pass control to second middleware 
-which are placed in series i.e isadmin(got passed from authorize middleware): if not next with some msg leads to error handling middleware
-
-now in isadmin middleware inside middleware->isadmin.js
-
-module.exports=function(req,res,next){
-    if(req.query.admin==="true"){
-        return next()
-    }
-    next("you are not admin, not accessed")
-}
-in query admin==true(got passed and pass to next middleware) i.e. userrouter(routing level middleware)
-userrouter will fo to user.controller as imported in app.js
-and execute homepage as no other url like /login etc. are present
-
-
-in this way middle acts as series and comes in between request response cycle
+    const userModel=mongoose.model('user',userScema) //'user' will be the collection of database
+    module.exports=userModel
