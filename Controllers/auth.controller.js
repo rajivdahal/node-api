@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const UserModel=require('./../models/user.model')
 const map_user_req=require('./../helpers/map_user_request')
-
+const upload = require('./../middlewares/uploader')('image');
 
 
 router.get('/',function(req,res,next){
@@ -11,6 +11,7 @@ router.get('/',function(req,res,next){
         status:200
     })
 })
+
 router.post('/login',function(req,res,next){
     console.log(req.body)
       UserModel.findOne({username:req.body.username})
@@ -28,9 +29,19 @@ router.post('/login',function(req,res,next){
                     next(err)
                 })
 })
-router.post('/register',function(req,res,next){
+router.post('/register',upload.single('image'),function(req,res,next){ //upload.single('image') ->image is thr fieldname of the  file
     console.log("at register page")
     console.log("request body is",req.body)
+    console.log("request.file>>",req.file)
+    if(req.fileTypeErr){
+        return next({
+            msg:"invalid file format",
+            status:406
+        })
+    }
+    if(req.file){
+        req.body.image=req.file.filename
+    }
     const newUser = new UserModel({});
     // newUser.name=req.body.name
     // newUser.email=req.body.email
@@ -44,7 +55,6 @@ router.post('/register',function(req,res,next){
 
     //upper logic is maintained in seperate helpers ->map_user_request file and the funda is same 
     const mapped_user=map_user_req(req.body,newUser)
-    console.log("request body is",req.body)
     mapped_user.save(function(err,user){
         if(err){
             return next(err)
@@ -54,7 +64,18 @@ router.post('/register',function(req,res,next){
     })
 })
 
-router.put('/:id',function(req,res,next){
+router.put('/:id',upload.single("image"),function(req,res,next){
+    console.log("request body>>",req.body)
+    console.log("request file,",req.file)
+    if(req.fileTypeErr){
+        return next({
+            msg:"invalid file format",
+            status:406
+        })
+    }
+    if(req.file){
+        req.body.image=req.file.filename
+    }
     UserModel.findOne({_id:req.params.id},function(err,user){
         if(err){
             return next(err)

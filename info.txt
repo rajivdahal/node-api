@@ -1,36 +1,284 @@
-database connection and mongoose
-1. install mongodb and mongoose
-2. make the connection to database
-  approach: you have to open connection to the database when the application runs for the first time and leave it don't close the connection 
-  so, 
-  in app.js when it loads you need to start connection
-  at top in app.js:
-   require('./db_init')---> coz code will run in app.js at first and connection will establish on another file (seperation of concern)
+file upload
+you will upload file from form-data from postman
+so for this you will need form-data parser in sever
+req.file-> has any file fieldname
+req.body->has all text data 
+so whenever you want to access images or files always do operation on req.file
 
-  redirects to ./db_init
-                                const mongodb=require('mongodb)
-                                const mongoose=require('mongoose)
-                                const dbName="group37db"
-                                const conxnURL="mongodb://localhost:27017"+'/'+dbName
+const multer=require('multer')
 
-                                mongoose.connect(conxnURL,{
-                                    useUnifiedTopology: true,
-                                    useNewUrlParser: true
-                                },
-                                function(err,done){
-                                    if(err){return console.log("error in db connectionn)} //no next() coz next will only work when url in browser hits 
-                                    // but here no url hit so no next but show in console to client that db connection has failed
-                                }
-                                console.log("db connection successful)
-                                )
-   the code will run at app.js when require() runs and db connection will be successful :
+const upload=multer({
+    storage:file_storage,
+})
 
-   in models folder
-   what you want to model?
-   make a file,in user.models.js
-    const mongoose=require("mongoose)
-    const userSchema=mongoose.userSchema({
-        model the db
+router.post('/register',upload.single('image'),function(req,res,next){
+
+}
+here when register is triggered with image fieldname: goes to upload function first and triggers storage:file_storage
+const file_storage=multer.diskStorage({
+    filename:function(req,file,cb){
+        cb(null,Date.now()+"-"+file.originalname)
+    },
+    destination: function (req, file, cb) {
+        cb(null, path.join(process.cwd(),'uploads/images'))
+    }
+})
+
+here diskstorage concept is used for replacing tha random name to custom name
+for random name : destination:'uploads' ---->very simple
+
+if you assign wrong fieldname than next() will operate from upload.single('image') and control goes to error handling middleware
+so assign correct fieldname
+
+
+after doing this file will get uploaded to uploads/images but you need to filter the file i.e check whether image or not if not reject 
+ so add filefilter function
+
+ const custom_type_filter=function(type){
+    return function(req,file,cb){
+        var mime_type=file.mimetype.split('/')[0]
+        if(mime_type===type){
+            cb(null,true)
+        }
+        else{
+            req.fileTypeErr=true
+            cb(null,false)
+        }
+    }
+}
+
+and update upload=multer({
+    storage:file_storage
+})  to
+
+const upload=multer({
+    storage:file_storage,
+    fileFilter:custom_type_filter('image'),
+})
+now you need to show for wrong type of file the file type is not valid
+and this code will make req.file =undefined if no file_filter else condition is achieved 
+if all goes perfect req.file= {} filled with object attributes
+so in else condition if filter req.filetypeErr=true 
+in /register middleware you will add logic as if req.fileTypeErr=true then next(message) and end else you will store the file name from 
+file.fileName to database appending as 
+req.body.image=req.file.fileName
+and finally storing to database
+router.post('/register',upload.single('image'),function(req,res,next){ //upload.single('image') ->image is thr fieldname of the  file
+    console.log("at register page")
+    console.log("request body is",req.body)
+    console.log("request.file>>",req.file)
+    if(req.fileTypeErr){
+        return next({
+            msg:"invalid file format",
+            status:406
+        })
+    }
+    if(req.file){
+        req.body.image=req.file.filename
+    }
+    const newUser = new UserModel({});
+    // newUser.name=req.body.name
+    // newUser.email=req.body.email
+    // newUser.username=req.body.username
+    // newUser.password=req.body.password
+    // newUser.phoneNumber=req.body.phoneNumber
+    // newUser.address={}
+    // newUser.address.permanentAddress=req.body.permanentAddress
+    // newUser.address.temporaryAddress=req.body.temporaryAddress.split(",")
+    // newUser.dob=req.body.dob
+
+    //upper logic is maintained in seperate helpers ->map_user_request file and the funda is same 
+    const mapped_user=map_user_req(req.body,newUser)
+    mapped_user.save(function(err,user){
+        if(err){
+            return next(err)
+        }
+        res.status(200)
+        res.send(user)
     })
-    const userModel=mongoose.model('user',userScema) //'user' will be the collection of database
-    module.exports=userModel
+})
+
+
+final code w/o seperation of concern is
+
+
+const express = require('express');
+const router = express.Router();
+const UserModel=require('./../models/user.model')
+const map_user_req=require('./../helpers/map_user_request')
+const multer=require('multer')
+const path=require('path')
+
+const custom_type_filter=function(type){
+    return function(req,file,cb){
+        var mime_type=file.mimetype.split('/')[0]
+        if(mime_type===type){
+            cb(null,true)
+        }
+        else{
+            req.fileTypeErr=true
+            cb(null,false)
+        }
+    }
+}
+const file_storage=multer.diskStorage({
+    filename:function(req,file,cb){
+        cb(null,Date.now()+"-"+file.originalname)
+    },
+    destination: function (req, file, cb) {
+        cb(null, path.join(process.cwd(),'uploads/images'))
+    }
+})
+
+const upload=multer({
+    // dest:'uploads' //if field name doesn't match throws error from its own next()->invisible //this way is done if you don't want to change filename
+    //if you want to change thr filename you need diskstorage of multer
+    //call diskstorage
+    storage:file_storage,
+    fileFilter:custom_type_filter('image'),
+})
+
+router.get('/',function(req,res,next){
+    res.json({
+        msg:"from auth homepage",
+        status:200
+    })
+})
+
+router.post('/login',function(req,res,next){
+    console.log(req.body)
+      UserModel.findOne({username:req.body.username})
+                .then(function(result){
+                    if(result.status=="active"){
+                        console.log("inside the if statement")
+                        return next({
+                            msg:"inaactive user",
+                            status:400
+                        })
+                    }
+                    res.send(result)
+                })
+                .catch(function(err){
+                    next(err)
+                })
+})
+router.post('/register',upload.single('image'),function(req,res,next){ //upload.single('image') ->image is thr fieldname of the  file
+    console.log("at register page")
+    console.log("request body is",req.body)
+    console.log("request.file>>",req.file)
+    if(req.fileTypeErr){
+        return next({
+            msg:"invalid file format",
+            status:406
+        })
+    }
+    if(req.file){
+        req.body.image=req.file.filename
+    }
+    const newUser = new UserModel({});
+    // newUser.name=req.body.name
+    // newUser.email=req.body.email
+    // newUser.username=req.body.username
+    // newUser.password=req.body.password
+    // newUser.phoneNumber=req.body.phoneNumber
+    // newUser.address={}
+    // newUser.address.permanentAddress=req.body.permanentAddress
+    // newUser.address.temporaryAddress=req.body.temporaryAddress.split(",")
+    // newUser.dob=req.body.dob
+
+    //upper logic is maintained in seperate helpers ->map_user_request file and the funda is same 
+    const mapped_user=map_user_req(req.body,newUser)
+    mapped_user.save(function(err,user){
+        if(err){
+            return next(err)
+        }
+        res.status(200)
+        res.send(user)
+    })
+})
+
+router.put('/:id',function(req,res,next){
+    UserModel.findOne({_id:req.params.id},function(err,user){
+        if(err){
+            return next(err)
+        }
+        if(!user){
+            return next("user not found")
+        }
+        //in normal fashion
+
+        // if(req.body.username)  
+        //         user.username=req.body.username     
+        // if(req.body.email)  
+        //         user.email=req.body.email
+        // if(req.body.name)  
+        //         user.name=req.body.name       
+        // if(req.body.password)  
+        //         user.password=req.body.password   
+        // if(req.body.phoneNumber)  
+        //         user.phoneNumber=req.body.phoneNumber   
+
+                
+        // if(req.body.permanentAddress || req.body.temporaryAddress && !user.address)
+        //         user.address={}
+        // if(req.body.permanentAddress)  
+        //         user.address.permanentAddress=req.body.permanentAddress   
+        // if(req.body.temporaryAddress)  
+        //         user.address.temporaryAddress=req.body.temporaryAddress.split(',')   
+       
+
+        // if(req.body.gender)  
+        //         user.gender=req.body.gender   
+        // if(req.body.dob)  
+        //         user.dob=req.body.dob   
+        // if(req.body.country)  
+        //         user.country=req.body.country   
+        // if(req.body.image)  
+        //         user.image=req.body.image   
+        // if(req.body.role)  
+        //         user.role=req.body.role   
+        // if(req.body.isArchived)  
+        //         user.isArchived=true
+        // if(req.body.setisArchivedFalse)  
+        //         user.isArchived=false        
+        // if(req.body.status)  
+        //         user.status=req.body.status   
+                
+        // user.save(function(err,done){
+        //     if(err){
+        //         return next(err)
+        //     }
+        //     res.json({
+        //         msg:"data successfully modified",
+        //         user:done
+        //     })
+        // })   
+        const mapped_user=map_user_req(req.body,user)     
+        mapped_user.save(function(err,done){
+            if(err){
+                return next(err)
+            }
+            res.json({
+                msg:"data successfully modified",
+                user:done
+            })
+        })
+    })
+})
+router.get('/about',function(req,res,next){
+    res.json({
+        msg:"from auth aboutpage",
+        status:200
+    })
+})
+
+
+module.exports=router
+
+
+
+
+
+
+with seperation of concern look into git commit or clone it is the same logic but there is addition of some 2 other filters
+do the same process for put process also look into file in auth.controller put section

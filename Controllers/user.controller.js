@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const userModel=require("./../models/user.model")
+const upload=require('./../middlewares/uploader')('image')
 
 
 router.get('/',function(req,res,next){
