@@ -2,11 +2,9 @@ const express=require("express")
 
 const PORT=4000;
 const app=express()
-const authrouter=require('./Controllers/auth.controller')
-const userrouter=require('./Controllers/user.controller')
 const path = require('path')
 const authenticate=require('./middlewares/authentication')
-const isadmin=require('./middlewares/isadmin')
+const routes=require('./routes/app.routes')
 
 
 require('./db_init')
@@ -16,10 +14,7 @@ require('./db_init')
 app.use(express.urlencoded({
     extended:true
 }))
-app.use('/file', express.static(path.join(process.cwd(), 'uploads')))
-app.use('/auth',authrouter)
-app.use('/user',userrouter)
-
+app.use('/',routes)
 
 //start of error handling middlewares
 app.use(function(req,res,next){

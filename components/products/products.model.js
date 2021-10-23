@@ -32,7 +32,7 @@ const productSchema=new Schema({
     quantity:Number,
     modelNo:String,
     price:Number,
-    images:[string], //many images and many images have many names
+    images:[String], //many images and many images have many names
     sku:Number,
     stock_quantity:Number,
     status:{
@@ -64,7 +64,6 @@ const productSchema=new Schema({
     tags: [String],
     offers: [String],
     orderNumber: Number
-
 },{
     timestamps:true, 
 })

@@ -5,12 +5,7 @@ const upload=require('./../middlewares/uploader')('image')
 
 
 router.get('/',function(req,res,next){
-    userModel.find({},{username:1})
-            .sort({
-                _id:-1
-            })
-           .limit(3)
-             .skip(1)
+    userModel.find({})
     .exec(function(err,users){
         if(err){
             return next(err)

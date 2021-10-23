@@ -1,1 +1,26 @@
-database modeling
+database modeling for e-ceommerce
+file folders has changed and with the influence of react you will create component folter inside the root directory
+->components
+  ->entity1(products)
+  ->users
+etc.
+inside each entity make file for each of them like
+inside users
+ user.controller.js
+ user.query.js
+ user.route.js
+ user.model.js
+
+
+ now start for the database modeling with mongoose
+ inside products.model.js
+
+route is made for product file and each routes are assigned as according
+flow is app.js-> products.route.js-> to products.controller.js->products.querry.js (for products)
+
+promise is created in query because to end request response cycle next() scope is only in controller and 
+it must end req. response cycle for error thus to manipulate errors promise is created
+
+and handled as according in products.controller.js
+
+ 
