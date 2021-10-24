@@ -3,7 +3,18 @@ const router = express.Router();
 const UserModel=require('./../models/user.model')
 const map_user_req=require('./../helpers/map_user_request')
 const upload = require('./../middlewares/uploader')('image');
+const passwordHash=require("password-hash")
+const configs=require("./../configs/db.configs")
+const jwt=require('jsonwebtoken')
 
+
+function generateToken(data){
+    return jwt.sign({
+        _id: data._id,
+        username: data.username,
+        role: data.role
+    },configs.JWT_SECRET)  
+}
 
 router.get('/',function(req,res,next){
     res.json({
@@ -16,14 +27,39 @@ router.post('/login',function(req,res,next){
     console.log(req.body)
       UserModel.findOne({username:req.body.username})
                 .then(function(result){
-                    if(result.status=="active"){
+                    
+                    if(!result){
+                        return next({
+                            msg:"invalid username",
+                            status:400
+                        })
+                    }
+                    //validate password
+                    const isMatched=passwordHash.verify(req.body.password,result.password)
+                    if(!isMatched){
+                        return next({
+                            msg:"invalid password, login failed",
+                            status:400
+                        })
+                    }
+                    //end of validate password
+
+                    if(result.status=="inactive"){
                         console.log("inside the if statement")
                         return next({
                             msg:"inaactive user",
                             status:400
                         })
                     }
-                    res.send(result)
+
+                    //everything is perfect generate token
+                    let token=generateToken(result)
+                    //end of generating token
+
+                    res.json({
+                        user:result,
+                        token:token
+                    })
                 })
                 .catch(function(err){
                     next(err)
@@ -42,19 +78,10 @@ router.post('/register',upload.single('image'),function(req,res,next){ //upload.
     if(req.file){
         req.body.image=req.file.filename
     }
-    const newUser = new UserModel({});
-    // newUser.name=req.body.name
-    // newUser.email=req.body.email
-    // newUser.username=req.body.username
-    // newUser.password=req.body.password
-    // newUser.phoneNumber=req.body.phoneNumber
-    // newUser.address={}
-    // newUser.address.permanentAddress=req.body.permanentAddress
-    // newUser.address.temporaryAddress=req.body.temporaryAddress.split(",")
-    // newUser.dob=req.body.dob
-
-    //upper logic is maintained in seperate helpers ->map_user_request file and the funda is same 
+    const newUser = new UserModel({}); 
     const mapped_user=map_user_req(req.body,newUser)
+    mapped_user.password=passwordHash.generate(req.body.password)
+
     mapped_user.save(function(err,user){
         if(err){
             return next(err)

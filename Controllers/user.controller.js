@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const userModel=require("./../models/user.model")
 const upload=require('./../middlewares/uploader')('image')
+const authenticate=require("./../middlewares/authentication");
+const authorize = require('./../middlewares/authorization');
 
-
-router.get('/',function(req,res,next){
+router.get('/',authenticate,function(req,res,next){
     userModel.find({})
     .exec(function(err,users){
         if(err){
@@ -12,15 +13,12 @@ router.get('/',function(req,res,next){
         }
         res.send(users)
     })
-
-    
         // userModel.find({},{username:1},function(err,user){
         //     if(err){
         //         return next(err)
         //     }
         //     res.send(user)
-        // })
-        
+        // })    
 })
 router.get('/login',function(req,res,next){
     res.json({
@@ -46,7 +44,9 @@ router.get('/:id',function(req,res,next){
         res.json(done)
     })
 })
-router.delete('/:id',function(req,res,next){
+
+router.delete('/:id',authenticate,authorize, function(req,res,next){
+
     userModel.findById(req.params.id,function(err,user){
         if(err){
             return next(err)
@@ -57,6 +57,7 @@ router.delete('/:id',function(req,res,next){
                 status:400
             })
         }
+
         user.remove(function(err,removed){
             if(err){
                 return next("error in removing")

@@ -5,5 +5,6 @@ const dbName = 'group37db';
 module.exports={
     conxnURL:conxnURL,
     dbName:dbName,
+    JWT_SECRET:"fsajhfdaosfh",
 
 }

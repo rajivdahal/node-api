@@ -4,7 +4,7 @@ const Schema=mongoose.Schema; //you need to use this schema in different places 
 const reviewSchema = new Schema({
     user: {
         type: Schema.Types.ObjectId, //the object_id is passed and it is of that type
-        ref: 'user' // from user collection user is searched
+        ref: 'users' // from user collection user is searched
     },
     point: {
         type: Number,
@@ -63,7 +63,11 @@ const productSchema=new Schema({
     origin: String,
     tags: [String],
     offers: [String],
-    orderNumber: Number
+    orderNumber: Number,
+    vendor: {
+        type: Schema.Types.ObjectId,
+        ref: 'users'
+    },
 },{
     timestamps:true, 
 })

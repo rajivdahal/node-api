@@ -62,6 +62,8 @@ function map_product(data, newproduct) {
         newproduct.offers = typeof (data.offers) === "string" ? data.offers.split(',') : data.offers
     if (data.orderNumber)
         newproduct.orderNumber = data.orderNumber
+    if(data.vendor)
+        newproduct.vendor=data.vendor    
 
 }
 function map_review(data, new_review) {
@@ -73,15 +75,44 @@ function map_review(data, new_review) {
         new_review.message = data.reviewMessage;
 
 }
+
+//start of exec logic
+//simple format is: 
+// productmodel.find({condition},function(err,done{
+
+// }))
+
+// to
+// productmodel.find({condition},exec(function(err,done){
+
+// }))
+
 function find(condition) {
+
     return new Promise(function (resolve, reject) {
-        productmodel.find(condition, function (err, done) {
-            if (err) {
-                console.log("error in fetching the data")
-                return reject(err)
-            }
-            resolve(done)
+        productmodel.find(condition,{
+            category:1,
+            name:1,
+            vendor:1,
+            reviews:1
         })
+                    .sort({
+                        _id:-1
+                    })
+                    .populate('vendor',{ 
+                        username:1,
+                        email:1
+                    })
+                    .populate('reviews.user',{
+                        username:1,
+                        email:1
+                    })
+                    .exec(function(err,done){
+                        if(err){
+                            return reject(err)
+                        }
+                        resolve(done)
+                    })
     })
 }
 
