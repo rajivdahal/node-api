@@ -48,19 +48,19 @@ function remove(req,res,next){
                         })
 }
 function update(req,res,next){
-    const data={
+    const incdata={
         id:req.params.id,
         data:req.body
     }
     //extra logic for file upload update
     if (req.files && req.files.length) {
-        data.data.images = req.files.map(function (item) {
+        incdata.data.images = req.files.map(function (item) {
             return item.filename
         })
     }
     //end of extra logic for file upload update
 
-    productquery.update(data)
+    productquery.update(incdata)
                     .then(function(response){
                         res.send(response)
                     })

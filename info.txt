@@ -23,4 +23,33 @@ it must end req. response cycle for error thus to manipulate errors promise is c
 
 and handled as according in products.controller.js
 
- 
+process with code:
+create seperate file routes for handling all routers 
+in app.js link the app.routes as
+
+const routes=require('./routes/app.routes')
+app.use('/',routes)
+whenever the requests hits like Https://4040/---> triggers the app.use ('/',routes) file
+
+for registering the products:
+url:Https:/4040/products(post) 
+redirect to /products from app.use('/',routes) to app.routes and make product controller
+inside app.routes: 
+
+const productrouter=require('./../components/products/products.route')
+router.use('/product',productrouter)
+
+upto here Https:/4040/products has hit now hit register by going in product.route.js
+be spesific for post request
+router.route('/')
+    .post(productcontroller.post)
+
+routing part has finished now routing will take to controller which has scope of next()
+
+
+
+
+
+
+
+
