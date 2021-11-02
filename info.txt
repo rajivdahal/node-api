@@ -1,272 +1,63 @@
-token based authentication and password hashing
+1. Update and imsert with images explained in product.controller.js and product.querry.js
+ 
 
-password hashing
+2.searching mechanism
 
-during registration
-after mapping 
-   const mapped_user=map_user_req(req.body,newUser)
-    mapped_user.password=passwordHash.generate(req.body.password)
+you will use querry of find but the conditions are different
 
-    see at auth.controller refistration
+searching can be done through GET method(in homepage) as well as  POST method(advanced filtering) by  sending some data to backend
 
-while logging in 
-const isMatched=passwordHash.verify(req.body.password,result.password)
-2 parameters are passed  1st is password to check and another is hashed password
-returns wither true(matched) or false(unmatched)    
+if get requiest data are in req.query ,
+if post data are in req.body
 
-for authentication
-
-install json web token
-
-authentication is done for determining user so is done in auth controller->auth.controller
-
-during logging in token is genetrated by calling jwt.sign function 
-
-token has its own payload that can be used in future use 
-
-after searching user during logging in at last the token is generated and exported to api collectively as {user:user,token:token}
-
-function generateToken(data){
-    return jwt.sign({
-        _id: data._id,
-        username: data.username,
-        role: data.role
-    },configs.JWT_SECRET)  
-}
-
-upper is function 
-
-        //start of generating token r:result is user in object form whole user as data is passed to generate token
-       let token=generateToken(result)
-                    //end of generating token
-
-                    res.json({
-                        user:result,
-                        token:token
-                    })
-
-each and every time now token has 3 attributes: id of user ,username of user and role of user which can further be used for validating
-
-JWT_SECRET is any random key present in configs file : this also helps to make a token 
-
-json web token is used in authentication and is verified inside authentication middleware
-
-authentication means who is the person and responsible for adding the product
-
-where to use this token?
-for adding product-> who added the product?
-for getting all products-> nnot showing all added products to all person but to the selected ones
-to edit the persons specific product
-to delete his or her specific product
+and the conditions are matched in following ways 
+let condition = {}
+    const data = req.method === "GET" ? req.query : req.body
+    if (data.category)
+        condition.category = data.category
+    if (data.name)
+        condition.name = data.name
+    if (data.color)
+        condition.color = data.color
 
 
-the authentication is done for all product crud process and some of them requires authentication dome doesn't 
-eho requires authentication are shown in product.route and is guarded by authentication middleware
-first of all authentication middleware executes and the only another middleware executes
+  in case of price range the minimum and max price can be set using db query 
 
-
-
-
-now here for posting a product a token is required  and the token is obtained after logging in i.e a person can only post a product
-if he is logged in 
-and the token is placed in authentication header in postman and send the payload in form data or x-www-urlformencoded
-
-verification process is done in middleware 
-
-// next("invalid token")
-    let token;
-    if (req.headers['authorization'])
-        token = req.headers['authorization']
-    if (req.headers['x-access-token'])
-        token = req.headers['x-access-token']
-    if (req.query['token'])
-        token = req.query['token']
-    if (!token) {
-        return next({
-            msg: "Authentication Failed, Token Not Provided",
-            status: 401
-        })
-    }
-
-token is always served from header so could be any of the name if any of them matches token is there inside token else show error
-
-once the token is obtained it must be verified whether token matches to algorithm created by same JWT_SECRET key
-
-once the token is verified attach the token payload i.e _id,username,role to the request as user object i.e
-
-JWT.verify(token, configs.JWT_SECRET, function (err, done) {
-        if (err) {
-            return next(err);
+    if (data.minPrice)
+        condition.price = {
+            $gte: data.minPrice
         }
-        console.log('token verfication successfull', done);
-        // add client information in request when passing control
-
-     
-           
-            req.user=done
-            next();
-
-    })
-
-  now if ram log in and wants to add product ram request for post request has user object that has its id,username,role
-here the example is rojina
-
-  token verfication successfull {
-  _id: '617563d43971a878135ea6e3',
-  username: 'rojina',
-  role: 1,
-  iat: 1635094371
-}  
-
-with this by taking the info of rojina/ram passes control to next middleware for adding product since success is done from this middleware
-the logic is same for others
+    if (data.maxPrice)
+        condition.price = {
+            $lte: data.maxPrice
+        }
+    if (data.minPrice && data.maxPrice)
+        condition.price = {
+            $lte: data.maxPrice,
+            $gte: data.minPrice
+        }
 
 
+the interesting part is date part
 
-
-
-
-for populating the info using populate()
-
-
-vendor has schema of id type and can be populated by the info of user
-"vendor": "617563d43971a878135ea6e3"--------->in Postman
-
-function find(condition) {
-    return new Promise(function (resolve, reject) {
-        productmodel.find(condition,{
-            category:1,
-            name:1,
-            vendor:1,
-        })
-                    .sort({
-                        _id:-1
-                    })
-                    .populate('vendor',{ 
-                        username:1,
-                        email:1
-                    })
-                    .exec(function(err,done){
-                        if(err){
-                            return reject(err)
-                        }
-                        resolve(done)
-                    })
-    })
-}
-
-with this code you can see in product.querry.js->find condition
-as soon as the details come up "vendor": "617563d43971a878135ea6e3" this type of data is expected but .populate('vendor) will populate 
-'vendor' as
-step1: it will go to vendor schema
-step2: it will see ref as users collection
-step3: the id stored in vendor matches with database and fetch the user
-and show as
- {
-        "_id": "617565969da5308b6ea0947f",
-        "name": "mobile",
-        "category": "electronics",
-        "vendor": {
-            "_id": "617563d43971a878135ea6e3",
-            "username": "rojina",
-            "email": "rojinadahal2@gmail.com"
+    if (data.fromDate && data.toDate) {
+        const fromDate = new Date(data.fromDate).setHours(0, 0, 0, 0);
+        const toDate = new Date(data.toDate).setHours(23, 59, 59, 999);
+        condition.createdAt = {
+            $lte: new Date(toDate),
+            $gte: new Date(fromDate)
         }
     }
 
-    due to projection rule applied this type data is only shown
+it takes both the from date and to date should match if condition to run 
 
-
-    upto here all the products added can be seen by anyone but condition is 
-    only superadmin can see all products and other can see only their products when hitting get all products
-    the logic is 
-    in products.controller.js
-
-    function get(req, res, next) {
-    const condition = {}
-    if(req.user.role!==1){ // this is the logic
-        condition.vendor=req.user._id
-    }
-    productquery.find(condition)
-        .then(function (response) {
-            res.send(response)
-        })
-        .catch(function (err) {
-            next(err)
-        })
-}
-
-
-now do the same for reviews
-only the review and the object id is shown
-
-                    .populate('reviews.user',{
-                        username:1,
-                        email:1
-                    })
-
-                    look at the same code  in user.query.js
-
-
-problems in token authentication and ways to fix it
-1. whenever there is change in original data , the payload i.e info carried by token must also change but do not change in actual
- problem: whenever the superadmin is changes to normal user the same person shouldnot see all the products but in reality he sees
-          ehenever the normal person upgrades to admin he should see all the data but doesn't see at all
-
-2.if the user is deleted/removed the token is still remains and performs the same function as before even if the user is deleted
- they can still use the system
-
-
-the solution is same for both
-in the middleware of verifying token first verify if the user is present in database or not then only proceed for further
-if got it then only pass the payload in token
-
-in authentication middleware
-
-
-
-   JWT.verify(token, configs.JWT_SECRET, function (err, done) {
-        if (err) {
-            return next(err);
-        }
-        console.log('token verfication successfull', done);
-        // add client information in request when passing control
-
-        UserModel.findOne({
-            _id:done._id
-        },function(err,user){
-            console.log("inside fsajbfj")
-            if(err){
-                return next({
-                    msg:"user already removed",
-                    status:400
-                })
-            }
-            if(!user){
-                return next({
-                    msg:"user already removed"
-                })
-            }
-            console.log("user is",user)
-            req.user=done
-            next();
-        }) 
-    })
-
-}
-
-
-
-authorization
-it is assigning permission
-if is admin it can delete the user else other can't 
-implementing the logic
-
-note: authorization comes after authentication
-so if you apply authorization middleware place it after authentication middleware
-
-see authorization middleware 
-and is applied on delete user 
-
+ const fromDate = new Date(data.fromDate).setHours(0, 0, 0, 0);
+whenever you give date as 2021/01/01 the backend sets the time to 12 am time of   2021/01/01
+         const toDate = new Date(data.toDate).setHours(23, 59, 59, 999);
+whenever you give date as 2021/01/01 the backend sets the time just before to  am time of   2021/01/02 
+so tin this way 1 day duration is set and if you don't give to date also 1 day duration is set that means that day (particular day)
+it will search the created at section with query parameters lte and gte 
+(use common sense) for analyzing
 
 
 

@@ -13,9 +13,11 @@ function map_product(data, newproduct) {
     if (data.price)
         newproduct.price = data.price
     if (data.images)
-        newproduct.images = typeof (data.images) === "string" ?
+        newproduct.images = typeof (data.images) === "string" ? //in most of the cases data.images will only coome this logic will fail
+        //array will come most of the time not string
             data.images.split(',') :
             data.images
+            
     if (data.sku)
         newproduct.sku = data.sku
     if (data.stock_quantity)
@@ -90,12 +92,7 @@ function map_review(data, new_review) {
 function find(condition) {
 
     return new Promise(function (resolve, reject) {
-        productmodel.find(condition,{
-            category:1,
-            name:1,
-            vendor:1,
-            reviews:1
-        })
+        productmodel.find(condition)
                     .sort({
                         _id:-1
                     })
@@ -147,21 +144,37 @@ function remove(data) {
 function update(data) {
     return new Promise(function (resolve, reject) {
         productmodel.findById(data.id, function (err, done) {
+
             if (err) {
                 return reject(err)
             }
             if (!done) {
                 return reject("product not found")
             }
-            map_product(data.data, done)
+            map_product(data.data, done) //data.data contains images field and whenever images field are sent to a mapper mapper replaces
+            //the old image name and keep the recent nemes obtainied from the update product controller, this causes an error
+            // coz you need to append new images to the old images but old images are replace so you need to fix the issue
+            //upto this point new images are stored in a done andd extra logic needs to be applied
 
             //extra portion for file update
-            if (data.data.images) {
-                done.images = done.images.concat(data.data.images)
+            if (data.data.newimages) {
+                done.images = done.images.concat(data.data.newimages) //its an array concatination done.images is also array and data.data.images is also array and 
+                //final result is an array
             }
             //end of extra portion for file upload
-            console.log("data.data is>>", data.data)
-            console.log(done)
+            //from controller string data to files to remove are processed and given as array to querry, here the querry is processed 
+            //and extracted only the image name 
+            
+            //if the name of image matches with imagettoremove delete them from product and save the product first check if filestoremove are there or not
+            if(data.data.filesToRemove && data.data.filesToRemove.length){
+                done.images.forEach(function(item,index){
+                    if(data.data.filesToRemove.includes(item)){
+                        done.images.splice(index,1)
+                    }
+                })
+            }
+            
+            
             done.save(function (err, done) {
                 if (err) {
                     return reject(err)

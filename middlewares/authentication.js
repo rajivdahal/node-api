@@ -17,12 +17,13 @@ const authorize = function (req, res, next) {
     if (req.query['token'])
         token = req.query['token']
     if (!token) {
+        console.log("token is",token)
         return next({
             msg: "Authentication Failed, Token Not Provided",
             status: 401
         })
     }
-    console.log('token >>>', token)
+ 
     // token available now validate
     token = token.split(' ')[1]
 
@@ -30,13 +31,13 @@ const authorize = function (req, res, next) {
         if (err) {
             return next(err);
         }
-        console.log('token verfication successfull', done);
+        // console.log('token verfication successfull', done);
         // add client information in request when passing control
 
         UserModel.findOne({
             _id:done._id
         },function(err,user){
-            console.log("inside fsajbfj")
+            // console.log("inside fsajbfj")
             if(err){
                 return next({
                     msg:"user already removed",
@@ -48,7 +49,7 @@ const authorize = function (req, res, next) {
                     msg:"action denied, user removed"
                 })
             }
-            console.log("user is",user)
+            // console.log("user is",user)
             req.user=done
             next();
         })
