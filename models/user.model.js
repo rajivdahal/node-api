@@ -49,7 +49,10 @@ const UserSchema=new mongoose.Schema({
     status: {
         type: String,
         default: 'active'
-    }
+    },
+    passwordResetToken:String,
+    passwordResetTokenExpiry: String
+
 
 })
 const UserModel=mongoose.model('users',UserSchema)
