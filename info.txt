@@ -1,281 +1,169 @@
-reset password email sending
-1. install nodemailer in the backend
-2. install 'nodemailer-smtp-transport'
-3.make a routing level middleware to handle post request getting email only
+event driven communication and socket communication
+///////////////////////////////////////////////////////////////////////////////
+event based communication
+///////////////////////////////////////////////////////////////////////////////
+events=require('events')
+var events=new events.EventEmitter()
 
 
-router.post('/forgot-password', function (req, res, next) {
-    UserModel.findOne({
-        email: req.body.email
-    }, function (err, user) {
-        if (!user) {
-            return next({
-                msg: "email not registered yet",
-                status: 400
-            })
+setTimeout(function(){
+    myevent.emit('kishor','hello')
+},3000)
 
+myevents.on('kishor',function(data){
+    console.log("data in kishor event is",data)
+})
+
+
+myevents.on gives a response to the even that is emitted by
+
+    myevent.emit('kishor','hello')
+
+
+whenever you click that click is emitted likewise myevent.emit('kishor','hello') kishor event and send data hello
+and 
+myevent.on gives a response 
+it takes response and data as argument
+
+myevents.on('kishor',function(data){
+    console.log("data in kishor event is",data)
+})
+
+
+///////////////////////////////////////////////////////////////////////////////
+where to use event based communication?
+///////////////////////////////////////////////////////////////////////////////
+
+it can be used as a middleware to handle error
+
+we can set error event and whenever error event is emitted , along with that error event send some data so taht events can 
+communicate to each other
+
+
+myev.on('err',function(err,resp){
+    console.log("err from the event based system is",err)
+    resp.json(err)
+})
+ upper is the event that acts as a response giver 
+ not the event should be emitted
+
+
+ inside auth controller 
+
+router.get('/', function (req, res, next) {
+   require('fs').readFile('skdfabsfkas',function(err,done){
+       if(err){
+           return req.myev.emit('err',err,res)
+       }
+
+   })
+})
+
+req has myev which is emmit from event 
+so put an event in request before executing other middleware in app.js so that req has event and can have event communication
+
+final code 
+
+in app.js
+
+app.use(function(req,res,next){
+    req.myev=myev
+    next()
+})
+myev.on('err',function(err,resp){
+    console.log("err from the event based system is",err)
+    resp.json(err)
+})
+
+in auth controller 
+
+
+router.get('/', function (req, res, next) {
+   require('fs').readFile('skdfabsfkas',function(err,done){
+       if(err){
+           return req.myev.emit('err',err,res)
+       }
+
+   })
+})
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+socket communication
+////////////////////////////////////////////////////////////////////////////////
+
+you need to have socket server 
+
+like you initialized database server you need to initialize socket server at first
+
+socket is bidirectional,event-based, real time communication
+annd it needs to be initialized in both the client and server side. in our case client is react app and server is node app
+but node app can also be used as both client and server
+
+for client you install->socketio-client(react)
+for server->socketio(node)
+
+same like express server you need to have socket server now you need port no. and make the socket server
+
+with seperation of concern make socket.js
+
+
+const config=require('./configs/index')
+const socket=require('socket.io')
+
+module.exports=function(app){
+    const io = socket(app.listen(config.SOCKET_PORT), {
+        cors: {
+            allow: '*'
         }
-        if (err) {
-            console.log("inside first err request")
-            return next(err)
-        }
-        res.send(user)
-    }    
+    })
+    io.on('connection', function (client) {
+        console.log('client connected to socket server', client.id);
 
-the user is obtained by searching from email(since the email is unique) only one user is there in user
+        client.emit('hello', 'hi from server')
 
-4. prepare the email data what will you send(what you  need to show in the receiver side)
-you want to send hii(name) and send to the no. of receivers and want to give the reset link
-so prepare 3 data to send 
+        client.on('hi', function (data) {
+            console.log('at hi event', data)
+        })
+    })
 
-
-var emaildata = {
-            name: user.username,
-            email: user.email,
-            link: `${ req.headers.origin } /reset_password/${ user._id } `
-        }
-req.headers.origin contains the domain name of request (now it is localhost)
-
-function prepareEmail(data) {
-    return {
-        from: 'Group 37 Store<noreply@example.com>', // sender address
-        to: data.email, // list of receivers
-        subject: "Forgot Password ✔", // Subject line
-        text: "Hello world?", // plain text body
-        html: `
-        <p>Hi <strong>${data.name}</strong>,</p>
-        <p>we noticed that you are having trouble logging into our system please click the link below to reset your password</p>
-        <p><a href="${data.link}" target="_blank">click here to reset password</a></p>
-        <p>Regards</p>
-        <p>Group37 Support Team</p>
-        <p>2021</p>`
-
-    }
 }
 
-upto here you have successfully prepared the email data now the middleware looks like
+now call this function from app.js
+require('./sockets')(app)
 
-router.post('/forgot-password', function (req, res, next) {
-    UserModel.findOne({
-        email: req.body.email
-    }, function (err, user) {
-        if (!user) {
-            return next({
-                msg: "email not registered yet",
-                status: 400
-            })
+it is called as function and app is passed in socket so that app.listen(express) is used to make a server
 
-        }
-        if (err) {
-            console.log("inside first err request")
-            return next(err)
-        }
-        var emaildata = {
-            name: user.username,
-            email: user.email,
-            link: `${ req.headers.origin } /reset_password/${ user._id } `
-        }
-        var emailBody = prepareEmail(emaildata)
+cors error might come ato solve this error cors:{
+    allow:* for all the request handler
+}
 
-
-     })
-
-})     
-
-emailbody will have all the prepared data to send and send to whom info
-
-gmail is based on SMTP protocol and make a protocol for this
-
-
-var smtpTransport = require('nodemailer-smtp-transport');
-
-const sender = nodemailer.createTransport(smtpTransport({
-    service: 'Gmail',
-    auth: {
-        user: "rajivdahal2@gmail.com",
-        pass: your password
-    },
-    tls: {
-        // do not fail on invalid certs
-        rejectUnauthorized: false
-    },
-}))
-
-//here you need to enable google settings less secure apps 
-www.myaccount.google.com/lesssecureapps
-and enable logging in less secure apps
-
-
-finally send the email
-and the complete middleware picture is
-
-
-
-router.post('/forgot-password', function (req, res, next) {
-    UserModel.findOne({
-        email: req.body.email
-    }, function (err, user) {
-        if (!user) {
-            return next({
-                msg: "email not registered yet",
-                status: 400
-            })
-
-        }
-        if (err) {
-            console.log("inside first err request")
-            return next(err)
-        }
-        var emaildata = {
-            name: user.username,
-            email: user.email,
-            link: `${ req.headers.origin } /reset_password/${ user._id } `
-        }
-        var emailBody = prepareEmail(emaildata)
-        sender.sendMail(emailBody, function (err, done) {
-            if (err) {
-            console.log("inside second err request")
-
-                return next(err)
-            }
-            res.json(done)
-
-        })
-    })
+io.on ('connection',function(client){
 
 })
 
+//connection is also another event which is recognized by express server
 
 
-now the email is sent and while clicking that link you should redirect to the reset_password dashboard which is created on react page
-http://localhost:3000/reset_password/8YD9LlTsswklNFIXeBp5KbR
+but the connection is only established when the client is connected to the socket server
 
-8YD9LlTsswklNFIXeBp5KbR
-its and object ID 
-but you should not send any object (critical info) in params else you should send some random string
+client.emit('hello',data)
 
-logic: 
-generate random string while the forgot-password is clicked and store that string in database as passwordResetToken
- and
+it is the response given to the on when clients calls the event 'hello'
 
-while navigating to reset_password page ise this randomstring generator  where the id was used to fetch info but now use this token to fetch user 
+and as soon as hello event is triggered from client on function it sends the emmit response 
+and again  it sends the signal to client by 'hi' event 
+in react app the same method is ised emit and on
+in this way communication is done
 
-inside forgot-password middlewware
 
-router.post('/forgot-password', function (req, res, next) {
-    UserModel.findOne({
-        email: req.body.email
-    }, function (err, user) {
-        if (!user) {
-            return next({
-                msg: "email not registered yet",
-                status: 400
-            })
 
-        }
-        if (err) {
-            console.log("inside first err request")
-            return next(err)
-        }
-        var randomtoken=randomString.generate(23)
-        var tokenExpiry = Date.now() + 1000 * 60 * 60 * 2; 
-        
-        var emaildata = {
-            name: user.username,
-            email: user.email,
-            link: `${ req.headers.origin }/reset_password/${randomtoken}`
-        }
-        var emailBody = prepareEmail(emaildata)
-        user.passwordResetToken=randomtoken
-        user.passwordResetTokenExpiry =tokenExpiry
-        user.save(function(err,done){
-            if(err){
-                return next(err)
-            }
-            sender.sendMail(emailBody, function (err, done) {
-                if (err) {
-                console.log("inside second err request")
-    
-                    return next(err)
-                }
-                res.json(done)
-    
-            })
-            console.log("the user is",done)
-        })
+
+
+
        
-    })
-
-})
-
-date is there coz. you don't want them to use same link to reset password again and again; the lin should expire thus
-token/link will expire in 1000(1s)*60(1min)*60(1hr)*2(2hr)
-
-update this all info in user UserModel
-i.e passwordResetToken and passwordResetTokenExpiry
-
-only after saving the expiry token and expiry time the mail is send
-
-
-
-now user will click the link and they will navigate to 
-http://localhost:3000/reset_password/8YD9LlTsswklNFIXeBp5KbR
-
-
-but now 
-8YD9LlTsswklNFIXeBp5KbR 
-is token hence the data are safe
-
-they will type password and confirm password:
-only password we will get in req.body
-
-and in params the token 
-
-user can only reset the password if the token -> generated from unique string randomly-> different strings are assigned to different users
-
-we will search from that token and get the user, if we get the user by searching through that random token then the user is valid 
-and can generate another password ->hash the password and save the user again 
-
-the token is used once now it should not be used another time make the token null and then only save
-
-wait......................
-
-then what? can i use that password after a year? 
-obv. no you should retrieve the user data from both the token as well as date 
-if token is right matches the users in database and the todays date does not exceed token expiry that we saved in forgot-password then user
-is found and can be proved that the user is resetting the password within 2 hr and the user is valid user
-
-only by searching through these two constraints user we will get from database and save the password by hashing whichwe got from
-req.body
-
-router.post('/reset-password/:token',function(req,res,next){
-     UserModel.findOne({
-         passwordResetToken:req.params.token,
-         passwordResetTokenExpiry: {
-            $gte: Date.now()
-        }
-     })
-     .then(user=>{
-         if(!user){
-             return next({
-                 msg:"user not found,Invalid or expired password reset token",
-                 status:400
-             })
-         }
-         user.password=passwordHash.generate(req.body.password)
-         user.passwordResetTokenExpiry = null;
-         user.passwordResetToken = null;
-         user.save(function(err,done){
-             if(err){
-                 return next(err)
-             }
-             res.json(done)
-         })
-     })
-     .catch(err=>{
-         next(err)
-     })
-})
+       
 
 
 

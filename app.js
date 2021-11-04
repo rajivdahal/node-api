@@ -5,10 +5,20 @@ const app=express()
 const path = require('path')
 const routes=require('./routes/app.routes')
 const cors=require('cors')
+const events=require('events')
+const myev=new events.EventEmitter()
 
-
-
+require('./sockets')(app)
 require('./db_init')
+
+app.use(function(req,res,next){
+    req.myev=myev
+    next()
+})
+myev.on('err',function(err,resp){
+    console.log("err from the event based system is",err)
+    resp.json(err)
+})
 
 app.use(cors())
 

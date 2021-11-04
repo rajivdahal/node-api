@@ -47,10 +47,12 @@ function generateToken(data) {
 }
 
 router.get('/', function (req, res, next) {
-    res.json({
-        msg: "from auth homepage",
-        status: 200
-    })
+   require('fs').readFile('skdfabsfkas',function(err,done){
+       if(err){
+           return req.myev.emit('err',err,res)
+       }
+
+   })
 })
 
 router.post('/login', function (req, res, next) {

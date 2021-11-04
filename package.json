@@ -22,6 +22,7 @@
     "nodemailer-smtp-transport": "^2.7.4",
     "nodemon": "^2.0.13",
     "password-hash": "^1.2.2",
-    "randomstring": "^1.2.1"
+    "randomstring": "^1.2.1",
+    "socket.io": "^4.3.1"
   }
 }
